@@ -23,8 +23,9 @@ class ProducerTwo implements Runnable{
 		try {
 			log.accept("Thread Started");
 			while(true) {
+				this.log.accept("Sleeping");
 				Thread.sleep(1000L);
-				log.accept("After sleeping 1000ms");
+				
 				q.add(new ProductModel(++id));
 				log.accept("Queue is added ["+id+"]");
 //				s.release();

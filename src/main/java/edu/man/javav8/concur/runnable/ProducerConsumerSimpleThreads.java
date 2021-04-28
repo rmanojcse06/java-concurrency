@@ -22,16 +22,18 @@ class ProducerOne implements Runnable {
 	
 	@SuppressWarnings("unchecked")
 	public void run() {
+		log.accept("Thread Started");
 		while(true) {
 			try {
+				this.log.accept("Sleeping");
+				Thread.sleep(1000L);
+
 				this.q.add(new ProductModel(++id));
 				log.accept("Queue is added ["+id+"]");
 				this.log.accept("Notifying");
 				synchronized(this.lock) {
 					this.lock.notifyAll();
 				}
-				this.log.accept("Sleeping");
-				Thread.sleep(1000L);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -51,6 +53,7 @@ class ConsumerOne implements Runnable {
 	}
 
 	public void run() {
+		log.accept("Thread Started");
 		while(true) {
 			try {
 				if(this.q.isEmpty()) {
@@ -59,7 +62,7 @@ class ConsumerOne implements Runnable {
 							this.lock.wait();
 						}
 				}
-				ProductModel p = q.remove();
+				ProductModel p = q.poll();
 				if(p!=null) {
 					log.accept("Product consumed as "+p);
 				}else {
