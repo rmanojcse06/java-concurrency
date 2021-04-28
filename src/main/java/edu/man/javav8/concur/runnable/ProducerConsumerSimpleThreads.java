@@ -1,44 +1,20 @@
 package edu.man.javav8.concur.runnable;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
-class ProductModel implements Comparable<ProductModel>{
-	int id;
-	long createdDt;
+import edu.man.javav8.model.ProductModel;
+import edu.man.javav8.utils.Utils;
 
-	ProductModel(int id) {
-		this.id = id;
-		this.createdDt = System.currentTimeMillis();
-	}
-
-	@Override
-	public String toString() {
-		return "ProductModel [id=" + id + ", createdDt=" + createdDt + "]";
-	}
-	
-	public int compareTo(ProductModel o) {
-		return Integer.compare(this.id,o.id);
-	}
-}
-class Utils{
-	private static final SimpleDateFormat SDF = new SimpleDateFormat("dd-MMM-YYYY hh:mm:ss,SSS");
-	static Consumer<String> logger(Class clazz) {
-		return (m)->System.out.println("["+SDF.format(new Date(System.currentTimeMillis()))+"] :: "+(null!=clazz?clazz.getName():"")+" - "+m);
-	}
-}
 
 class ProducerOne implements Runnable {
 	Object lock = null;
-	Queue queue = null;
+	Queue<ProductModel> q = null;
 	Consumer<String> log = null;
-	public ProducerOne(Object lock, Queue queue) {
+	public ProducerOne(Object lock, Queue<ProductModel> queue) {
 		this.lock = lock;
-		this.queue = queue;
+		this.q = queue;
 		this.log = Utils.logger(this.getClass());
 	}
 	static int id = 0;
@@ -48,8 +24,8 @@ class ProducerOne implements Runnable {
 	public void run() {
 		while(true) {
 			try {
-				this.log.accept("Adding into queue");
-				this.queue.add(new ProductModel(++id));
+				this.q.add(new ProductModel(++id));
+				log.accept("Queue is added ["+id+"]");
 				this.log.accept("Notifying");
 				synchronized(this.lock) {
 					this.lock.notifyAll();
@@ -66,24 +42,29 @@ class ProducerOne implements Runnable {
 
 class ConsumerOne implements Runnable {
 	Object lock = null;
-	Queue queue = null;
+	Queue<ProductModel> q = null;
 	Consumer<String> log = null;
-	public ConsumerOne(Object lock, Queue queue) {
+	public ConsumerOne(Object lock, Queue<ProductModel> queue) {
 		this.lock = lock;
-		this.queue = queue;
+		this.q = queue;
 		this.log = Utils.logger(this.getClass());
 	}
 
 	public void run() {
 		while(true) {
 			try {
-				if(this.queue.isEmpty()) {
+				if(this.q.isEmpty()) {
 						this.log.accept("waiting");
 						synchronized(this.lock) {
 							this.lock.wait();
 						}
 				}
-				this.log.accept("[ConsumerOne]::consuming model => "+this.queue.remove());
+				ProductModel p = q.remove();
+				if(p!=null) {
+					log.accept("Product consumed as "+p);
+				}else {
+					log.accept("Nothing consumed");
+				}
 				Thread.sleep(1);
 			} catch (Throwable t) {
 				t.printStackTrace();
